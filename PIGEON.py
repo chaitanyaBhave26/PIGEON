@@ -159,75 +159,6 @@ class PigeonApp(QTabWidget):
         layout.setSpacing(10)
         self.csv_plot_tab.setLayout(layout)
 
-    # def initUI(self):
-    #
-    #     self.window = QWidget()
-    #     self.layout = QVBoxLayout()
-    #     #Creating tabs
-    #     # self.tabs=QTabWidget()
-    #     self.tab1=QWidget()
-    #     self.tab2=QWidget()
-    #     self.addTab(self.tab1,"Run Simulation")
-    #     self.addTab(self.tab2,"Render Simulation")
-    #     # self.tabs.resize(self.width,self.height)
-    #
-    #     #Adding tabs to layout
-    #     # self.layout.addWidget(self.tabs)
-    #     # self.window.setLayout(self.layout)
-    #     # self.tab1.setLayout(self.layout)
-    #     #Creating display grid
-    #     self.grid = QGridLayout(self)
-    #     self.grid.setSpacing(10)
-    #
-    #
-    #     #Creating widgets
-    #     self.get_files_button = (QPushButton('Select simulation files'))
-    #     self.rem_files=(QPushButton('Remove selected file'))
-    #     self.ip_files_list = QListWidget()                                  #Shows selected files
-    #     self.HPC_PATH=QLineEdit()
-    #     self.HPC_PATH_name=QLabel('HPC run directory')
-    #     self.NUM_PROCS=QLineEdit()
-    #     self.NUM_PROCS.setValidator(QIntValidator(bottom=0))
-    #     self.n_name = QLabel('Number of processes')
-    #     self.RUN_SIMULATION  = (QPushButton('Run'))
-    #     self.STOP_SIMULATION = (QPushButton('Stop'))
-    #     self.RENDER_SIMULATION = (QPushButton('Render'))
-    #     self.log_output = QTextEdit()
-    #     self.render_scene = QGraphicsScene()
-    #     self.render_view  = QGraphicsView()
-    #
-    #     #Adding items on grid
-    #     self.grid.addWidget(self.get_files_button,1,0)
-    #     self.grid.addWidget(self.rem_files,2,0)
-    #     self.grid.addWidget(self.ip_files_list,1,1,2,2)
-    #     self.grid.addWidget(self.HPC_PATH_name,3,0)
-    #     self.grid.addWidget(self.HPC_PATH,3,1)
-    #     self.grid.addWidget(self.n_name,4,0)
-    #     self.grid.addWidget(self.NUM_PROCS,4,1)
-    #     self.grid.addWidget(self.RUN_SIMULATION,5,0)
-    #     self.grid.addWidget(self.STOP_SIMULATION,5,1)
-    #     self.grid.addWidget(self.RENDER_SIMULATION,5,2)
-    #     self.grid.addWidget(self.log_output,6,0,10,2)
-    #     # self.grid.addWidget(self.render_view,1,3,6,6)
-    #     # self.HPC_PATH, _ =QInputDialog.getText(self,"Get Path","Type HPC run director path")
-    #     #Setting actions
-    #     self.get_files_button.clicked.connect(self.openFileNamesDialog)
-    #     self.RUN_SIMULATION.clicked.connect(self.run_simulation)
-    #     self.log_output.setReadOnly(True)
-    #
-    #     #Setting locations
-    #     # self.rem_files.move(0,50)
-    #     # self.ip_files_list.move(200,0)
-    #     # self.HPC_form.move(0,150)
-    #
-    #     # self.HPC_PATH.move(0,100)
-    #
-    #     #Setting important variables
-    #     self.input_files = []
-    #     # self.openFileNameDialog()
-    #     # self.openFileNamesDialog()
-    #     # self.saveFileDialog()
-    #     self.setLayout(self.grid)
 
 #Widget action functions
     def openFileNamesDialog(self):
@@ -246,25 +177,34 @@ class PigeonApp(QTabWidget):
                 self.ip_files_list.addItem(filename)
 
     def run_simulation(self):
-        ip_file = [file for file in self.input_files if file[-2:]=='.i' ]
+        ip_file = [file for file in self.input_files if file[-2:]=='.i' ] #Change this extension based on which type of file is necessary or even completely remove it
         if not len(ip_file) >= 1:
             self.log_output.textCursor().insertHtml("<b><font color =\"red\">There should be atleast one input file file with a '.i' extension<br></font></b>")
             self.log_output.moveCursor(QTextCursor.End)
+            return
             #for multiple .i files must ask which is master .i file
         else:
             host=self.HPC_url.text()
             acct=self.HPC_ac_name.text()
+            path=self.HPC_run_dir.text()
 
             self.log_output.textCursor().insertHtml("Checking if HPC account and directory path exist<br>")
             self.log_output.moveCursor(QTextCursor.End)
             #Check that the path exists on HPC
             ssh_host = acct+'@'+host
-            temp=self.exists_remote(ssh_host,self.HPC_run_dir.text())
-            print("Status: ",temp)
+            temp=self.exists_remote_dir(ssh_host,path)
             if not(temp):
-                self.log_output.textCursor().insertHtml("Given directory does not exist on HPC. Please check HPC account details and directory path<br>")
-                return
-            self.log_output.textCursor().insertHtml("HPC account and path verified. Creating job folder and copying required files<br>")
+                self.log_output.textCursor().insertHtml("Given directory does not exist on HPC. Trying to create the directory<br>")
+                if self.make_dir(ssh_host,path+"/"+self.JOB_NAME.text()):
+                    self.log_output.textCursor().insertHtml("Successfully created directory structure.<br>")
+                else:
+                    self.log_output.textCursor().insertHtml("Could not create directory structure.<br>")
+            else:
+                self.make_dir(ssh_host,path+"/"+self.JOB_NAME.text())
+                self.log_output.textCursor().insertHtml("HPC account and path verified. Creating job folder and copying required files.<br>")
+
+    # def create_dirs_popup(self):
+
 
     #         # cmd = "sbatch -n 2 " + self.HPC_PATH.text()+'/'+'init_paraview.sh'
     #         self.log_output.textCursor().insertHtml("ssh "+ssh_cmd)
@@ -279,16 +219,24 @@ class PigeonApp(QTabWidget):
             # else:
             #     print (result)
             # print(run_cmd)
+    def make_dir(self,host,path):
+        cmd = 'mkdir -p ' + path
+        if not subprocess.call(['ssh',host,cmd], shell=False,
+stdout=subprocess.PIPE, stderr=subprocess.PIPE ):
+            return True
 
-    def exists_remote(self,host, path):
+    def exists_remote_dir(self,host, path):
         """Test if a file exists at path on a host accessible with SSH."""
-        cmd = "if [ -d " +path + " ]; then echo '1'; else echo '0'; fi"
-        print(cmd)
+        cmd = "ls "+path
 
-        status = subprocess.call(
-            ['ssh', host, cmd])
+        status=subprocess.Popen(
+            ['ssh', host, cmd], shell=False,
+    stdout=subprocess.PIPE, stderr=subprocess.PIPE )
+        status = (status.wait() ==0) ##Return code is 0 if path exists
+        # status=0
         return status
         raise Exception('SSH failed')
+
 if __name__ == '__main__':
     app = QApplication(sys.argv)
     ex = PigeonApp()
