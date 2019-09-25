@@ -6,11 +6,11 @@ import ntpath
 import subprocess
 import pipes
 
-class RavenApp(QTabWidget):
+class PigeonApp(QTabWidget):
 
     def __init__(self):
         super().__init__()
-        self.title = 'RAVEN Client'
+        self.title = 'PIGEON Client'
         self.left = 10
         self.top = 10
         self.width = 640
@@ -143,7 +143,7 @@ class RavenApp(QTabWidget):
         self.HPC_slurm_qos.setText('michael.tonks')
         self.HPC_opt_loc.setText('~/projects/moose/modules/combined/combined-opt')
 
-        self.setFilesDisplay(['~/projects/RAVEN_client/RUN_DIR/moose_inputfile.i'])
+        self.setFilesDisplay(['~/projects/PIGEON_client/RUN_DIR/moose_inputfile.i'])
         self.HPC_run_dir.setText('/ufrc/michael.tonks/chaitanya.bhave/RAVEN/')
         self.NUM_PROCS.setText('2')
         self.MEM_PER_PROC.setText('200')
