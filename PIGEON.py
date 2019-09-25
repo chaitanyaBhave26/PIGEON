@@ -40,7 +40,7 @@ class PigeonApp(QTabWidget):
         #Main app window
         self.setWindowTitle(self.title)
         self.setGeometry(self.left, self.top, self.width, self.height)
-        self.setWindowIcon(QIcon('RAVEN_logo.png'))
+        self.setWindowIcon(QIcon('PIGEON_logo.png'))
 
         self.show()
         # self.initUI()
@@ -291,5 +291,5 @@ class PigeonApp(QTabWidget):
         raise Exception('SSH failed')
 if __name__ == '__main__':
     app = QApplication(sys.argv)
-    ex = RavenApp()
+    ex = PigeonApp()
     sys.exit(app.exec_())
